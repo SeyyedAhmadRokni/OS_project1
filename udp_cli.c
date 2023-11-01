@@ -1,8 +1,13 @@
+#include <stdio.h>
+#include <stdlib.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
 #include <string.h>
+#include <arpa/inet.h>
+#include <sys/time.h>
 #include <strings.h>
-#include "server.c"
 
 const int SIZE = 1024;
 int main(int argc, char **argv){
@@ -16,6 +21,7 @@ int main(int argc, char **argv){
     socklen_t addr_size;
 
     sockfd = socket(AF_INET, SOCK_DGRAM, 0);
+    printf("socket: %d\n", sockfd);
 
     memset(&addr, '\0', sizeof(addr));
     addr.sin_family = AF_INET;

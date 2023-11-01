@@ -22,6 +22,7 @@ int main(int argc, char **argv){
     socklen_t addr_size;
 
     sockfd = socket(AF_INET, SOCK_DGRAM, 0);
+    printf("socket: %d\n", sockfd);
 
     if (sockfd < 0){
         char *err_msg = "socket not created";
