@@ -1,3 +1,5 @@
+#ifndef _GEN_
+#define _GEN_
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -8,14 +10,17 @@
 #include <arpa/inet.h>
 #include <sys/time.h>
 #include <stdbool.h>
-#include "udp_func.c"
+#include "serv_func.c"
 
-
-const int BUFFER_SIZE = 1024;
-const int MAX_CHAR_SIZE = 100;
 char* INDGREDIENTS_PATH = "indgredients.json";
 char* RECIPES_PATH = "recipes.json";
 char* HISTORY_PATH = "history.json";
+
+typedef enum job{
+    RESTAURANT,
+    SUPPLIER,
+    CUSTOMER
+}job;
 
 bool signup(char* username, int port){
 
@@ -40,20 +45,25 @@ bool signup(char* username, int port){
             for (int i = 0; i <= fd; i++){
                 if (FD_ISSET(i, &temp)){
                     if (i==fd){
-                        char* buf2 = receive_broadcast(port);
-                        int n = strcmp(username, buf2);
-                        if (n==0){
-                            return true;
-                        }
-                        else{
-                            char *msg = "Please enter a valid username : ";
-                            write(1, msg, strlen(msg));
+                        message* msg = receive_broadcast(port);
+                        if (msg->code == USERNAME_UNIQENESS_ANS ){
+                            int n = strcmp(username, msg->msg);
+                            if (n==0){
+                                return true;
+                            }
+                            else{
+                                char *msg = "Please enter a valid username : ";
+                                write(1, msg, strlen(msg));
+                            }
                         }
                     }
                     if (i==0){
                         bzero(buf, BUFFER_SIZE);
                         read(0, buf, BUFFER_SIZE);
-                        broadcast(port, buf);
+                        message msg;
+                        msg.code = USERNAME_UNIQENESS;
+                        msg.msg = buf;
+                        broadcast(port, &msg);
                     }
                 }
             }
@@ -61,3 +71,4 @@ bool signup(char* username, int port){
     }
     return false;
 }
+#endif
