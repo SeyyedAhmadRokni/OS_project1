@@ -23,14 +23,19 @@ int main(int argc, char **argv){
     sockfd = socket(AF_INET, SOCK_DGRAM, 0);
     printf("socket: %d\n", sockfd);
 
+    if (sockfd < 0){
+        char *err_msg = "socket not created";
+        write(2, err_msg, strlen(err_msg));
+    }
+
     memset(&addr, '\0', sizeof(addr));
     addr.sin_family = AF_INET;
     addr.sin_port = htons(port);
     addr.sin_addr.s_addr = inet_addr(ip);
 
     bzero(buffer, 1024);
-    strcpy(buffer, "Hello man\n");
 
+    strcpy(buffer, "Hello man\n");
     int x = sendto(sockfd, buffer, 1024, 0, (struct sockaddr*)& addr, sizeof(addr));
 
     bzero(buffer, 1024);

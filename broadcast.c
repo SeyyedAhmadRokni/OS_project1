@@ -18,6 +18,12 @@ int setupBroadcast(int port) {
     struct sockaddr_in address;
     int server_fd = socket(AF_INET, SOCK_DGRAM, 0);
 
+    if (server_fd < 0){
+        char *err_msg = "socket not created";
+        write(2, err_msg, strlen(err_msg));
+        exit(1);
+    }
+
     int opt = 1;
     setsockopt(server_fd, SOL_SOCKET, SO_BROADCAST, &opt, sizeof(opt));
     
@@ -29,6 +35,7 @@ int setupBroadcast(int port) {
     int n = bind(server_fd, (struct sockaddr *)&address, sizeof(address));
 
     if (n<0){
+        printf("not binded");
         return server_fd;
     }
 
@@ -50,43 +57,30 @@ int main(int argc, char **argv){
     int current_max = sockfd;
     fd_set ready_sockets, server_sockets;
     FD_ZERO(&server_sockets);
-    FD_SET(0, &server_sockets);
+    FD_SET(STDIN_FILENO, &server_sockets);
+    FD_SET(sockfd, &server_sockets);
 
     struct sockaddr_in client;
     char buffer[BUFF_SIZE];
     
     while(1){
         ready_sockets = server_sockets;
-        if(select(current_max+1, &ready_sockets, NULL, NULL, NULL) < 0){
-            write(2,"error", 5);
-            exit(1);
-        }
-
-        for (int i = 0; i <= current_max; i++){
-            if (FD_ISSET(i, &ready_sockets)>=0){
-                // printf("seted fd: %d \n", i);
-
-                if (i == sockfd){
-                    int client = setupBroadcast(port);
-                    FD_SET(client, &server_sockets);
-                    if (client > current_max){
-                        current_max = client;
-                    }
-                }
-                else{
-                    bzero(buffer, 0);
+        if(select(current_max+1, &ready_sockets, NULL, NULL, NULL) > 0){
+            for (int i = 0; i <= current_max; i++){
+                if (FD_ISSET(i, &ready_sockets)){
+                    // printf("seted fd: %d \n", i);
                     // printf("strlen buff : %d", (int)strlen(buffer));
+                    bzero(buffer, 0);
                     int client_len = sizeof(client);
-                    int received = recvfrom(i, buffer, BUFF_SIZE, 0, (struct sockaddr*)&client, &client_len);
-                    if (i==0){
-                        for (int j = 3; j <= current_max; j++){
-                            printf("len buffer: %d\n", (int)strlen(buffer));
-                            int send_key = sendto(j, buffer, strlen(buffer), 0, (struct sockaddr*)&client, sizeof(client_len));
-                            printf("sends : %d\n",send_key);
-                        }
+                    if (i==STDIN_FILENO){
+                        int received = recvfrom(STDIN_FILENO, buffer, BUFF_SIZE, 0, (struct sockaddr*)&client, &client_len);
+                        printf("len buffer: %d\n", (int)strlen(buffer));
+                        int send_key = sendto(sockfd, buffer, strlen(buffer), 0, (struct sockaddr*)&client, sizeof(client_len));
+                        printf("sends : %d\n",send_key);
                     }
-                    else{
-                        if (received >0){
+                    else if (i == sockfd){
+                        int received = recvfrom(i, buffer, BUFF_SIZE, 0, (struct sockaddr*)&client, &client_len);
+                        if (received > 0){
                             write(1, buffer, strlen(buffer));
                         }
                     }

@@ -13,12 +13,11 @@ int main(int argc, char **argv){
     
     char *ip = "127.0.0.1";
     int port = 8080;
-    int n;
-    char buffer[1024];
-    memset(buffer, '\0', 1024);
 
     int sockfd;
-    struct sockaddr_in server_addr, client_addr;
+    int n;
+    struct sockaddr_in server_addr;
+    char buffer[1024];
     socklen_t addr_size;
 
     sockfd = socket(AF_INET, SOCK_DGRAM, 0);
@@ -34,13 +33,17 @@ int main(int argc, char **argv){
     server_addr.sin_port = htons(port);
     server_addr.sin_addr.s_addr = inet_addr(ip);
 
+    bzero(buffer, 1024);
+
     n = bind(sockfd, (struct sockaddr *)&server_addr, sizeof(server_addr));
     if (n<0){
         char *err_msg = "bind errored";
         write(2, err_msg, strlen(err_msg));
     }
 
-    bzero(buffer, 1024);
+
+    struct sockaddr_in client_addr;
+    memset(buffer, '\0', 1024);
     addr_size = sizeof(client_addr);
     recvfrom(sockfd, buffer, 1024, 0, (struct sockaddr*)&client_addr, &addr_size);
     write(1, buffer, strlen(buffer));

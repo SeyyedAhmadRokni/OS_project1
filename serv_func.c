@@ -91,7 +91,7 @@ message* receive_broadcast(int port){
     int fd = make_socket(port);
     struct sockaddr_in adr = make_sock_addr(port);
     int adr_size = sizeof(adr);
-    int n = recvfrom(fd, buf, BUFFER_SIZE, 0, (struct sockaddr*)&adr, &adr_size);
+    int n = recv(fd, buf, BUFFER_SIZE, 0);
 
     message* msg = malloc(sizeof(message));
     msg->code = buf[0];
@@ -101,7 +101,7 @@ message* receive_broadcast(int port){
 }
 
 
-int setupServer(int port) {
+int setupServerTCP(int port) {
     struct sockaddr_in address;
     int server_fd;
     server_fd = socket(AF_INET, SOCK_STREAM, 0);
@@ -128,3 +128,21 @@ int acceptClient(int server_fd) {
 
     return client_fd;
 }
+
+int connectServer(int port) {
+    int fd;
+    struct sockaddr_in server_address;
+    
+    fd = socket(AF_INET, SOCK_STREAM, 0);
+    
+    server_address.sin_family = AF_INET; 
+    server_address.sin_port = htons(port); 
+    server_address.sin_addr.s_addr = inet_addr("127.0.0.1");
+
+    if (connect(fd, (struct sockaddr *)&server_address, sizeof(server_address)) < 0) { // checking for errors
+        printf("Error in connecting to server\n");
+    }
+
+    return fd;
+}
+

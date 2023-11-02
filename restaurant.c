@@ -14,8 +14,7 @@
 struct restaurant {
     char* username;
     bool open;
-    int customer_port;
-    int supplier_port;
+    int port;
 };
 
 bool start_working(int sockfd, int port, char* username){ //return value started
@@ -84,57 +83,59 @@ void show_recipes(){
 }
 
 
-int show_list(int port, int user_port, udp_message_code code, int max_sd, fd_set* fds, int server_fd){
+int show_list(int port, int user_port, udp_message_code code, int server_fd){
     char buf[BUFFER_SIZE];
     bzero(buf,BUFFER_SIZE);
-    message msg;
     sprintf(buf, "%d", port);
+    message msg;
     msg.msg = buf;
-    bzero(buf,BUFFER_SIZE);
     msg.code = code;
-    int n = broadcast(port, &msg);
-    fd_set working_set;
-    while(1){//must disconnect connection after 3 seconds
-        working_set = *fds;
-        if(select(max_sd+1, &working_set, NULL, NULL, NULL)>0){
-            for (int i = 0; i <= max_sd; i++) {
-                if (FD_ISSET(i, &working_set)) {
-                    
-                    if (i == server_fd) {  
-                        int new_socket = acceptClient(server_fd);
-                        FD_SET(new_socket, fds);
-                        if (new_socket > max_sd)
-                            max_sd = new_socket;
-                    }
-                    
-                    else { 
-                        int bytes_received;
-                        bytes_received = recv(i , buf, BUFFER_SIZE, 0);
-                        
-                        if (bytes_received == 0){ 
-                            close(i);
-                            FD_CLR(i, fds);
-                        }
-                        else{
-                            printf("%d %s\n", i, buf);
-                            memset(buf, 0, 1024);
-                        }
 
-                    }
+    int n = broadcast(port, &msg);
+
+    fd_set working_set, fds;
+    FD_ZERO(&fds);
+    FD_SET(STDIN_FILENO, &fds);
+    FD_SET(server_fd, &fds);
+
+    struct sockaddr_in addr = make_sock_addr(port);
+
+    while(1){//must disconnect connection after 3 seconds
+        working_set = fds;
+        if(select(server_fd+1, &working_set, NULL, NULL, NULL)>0){
+            if (FD_ISSET(STDIN_FILENO, &working_set)){
+                bzero(buf, BUFFER_SIZE);
+                read(STDIN_FILENO, buf, BUFFER_SIZE);
+                sendto(server_fd, buf, BUFFER_SIZE, 0, (struct sockaddr*)&addr, sizeof(addr));
+            }
+            else if (FD_ISSET(server_fd, &working_set)){
+                bzero(buf, BUFFER_SIZE);
+                message* msg = receive_broadcast(port);
+                if(msg->code == SUPPLIERS_LIST_ANS && code == SUPPLIERS_LIST){
+                    write(1, buf, BUFFER_SIZE);
+                    write(1, "\n", 1);
                 }
+                else if(msg->code == RESTAURANT_LIST_ANS && code == RESTAURANT_LIST){
+                    write(1, buf, BUFFER_SIZE);
+                    write(1, "\n", 1);
+                }
+                free(msg->msg);
+                free(msg);
             }
         }
     }
-    return max_sd;
+    return 0;
 }
 
-void request_ingredient(){
+void request_ingredient(int port){
     char buf[BUFFER_SIZE];
     char buf2[BUFFER_SIZE];
     char buf3[BUFFER_SIZE];
+    char buf4[BUFFER_SIZE];
     bzero(buf, BUFFER_SIZE);
     bzero(buf2, BUFFER_SIZE);
     bzero(buf3, BUFFER_SIZE);
+    bzero(buf4, BUFFER_SIZE);
 
     char* msg = "port of supplier : ";
     write(1, msg, strlen(msg));
@@ -145,7 +146,19 @@ void request_ingredient(){
     msg = "number of ingredient : ";
     write(1, msg, strlen(msg));
     read(0, buf3, BUFFER_SIZE);
-    // int fd = make_socket(itoa(buf));
+
+    int fd = connectServer(port);
+
+    sprintf(buf4, "%s %s", buf2, buf3);
+    send(fd, buf4, BUFFER_SIZE, 0);
+
+    bzero(buf4, BUFFER_SIZE);
+    sprintf(buf4, "waiting for supplier's response ...");
+
+    //wait 90s lock
+    
+
+    
 
 }
 
@@ -153,7 +166,31 @@ void show_requests_list(){
 
 }
 
-void answer_request(){
+void answer_request(int port){
+    char buf[BUFFER_SIZE];
+    char buf2[BUFFER_SIZE];
+    char buf3[BUFFER_SIZE];
+    bzero(buf, BUFFER_SIZE);
+    bzero(buf2, BUFFER_SIZE);
+    bzero(buf3, BUFFER_SIZE);
+
+    char* msg = "name of food : ";
+    write(1, msg, strlen(msg));
+    read(0, buf, BUFFER_SIZE);
+    msg = "port of restaurant : ";
+    write(1, msg, strlen(msg));
+    read(0, buf2, BUFFER_SIZE);
+
+    int fd = connectServer(port);
+
+    sprintf(buf3, "%s %s", buf2, buf3);
+    send(fd, buf3, BUFFER_SIZE, 0);
+
+    sprintf(buf3, "waiting for supplier's response ...");
+
+    //wait 90s lock
+    //history saving
+
 
 }
 
@@ -182,7 +219,7 @@ void show_history(char* username){
 int main(){
     int fd = make_socket(8080);
 
-    start_working(fd, 8080, "ahmad");
+    break_rest(fd, 8080, "ahmad");
     // bool rest_is_open = false;
     // if (argc < 2){
     //     char *msg = "please enter the port";

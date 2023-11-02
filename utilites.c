@@ -32,4 +32,24 @@ char** split(char* inp, char* sep){
     return tokens;
 }
 
+char* read_file(char* filepath){
+    int fd = open(filepath, O_RDONLY);
+    if(fd < 0){
+        fd = creat(filepath, O_RDONLY);
+        close(fd);
+        return NULL;
+    }
+    char* buf = calloc(BUFFER_SIZE, sizeof(char)); 
+    read(fd, buf, BUFFER_SIZE);
+    close(fd);
+    return buf;
+}
+
+char* accept_denied(int a){
+    if (a==1){
+        return "accepted";
+    }
+    return "denied";
+}
+
 #endif
