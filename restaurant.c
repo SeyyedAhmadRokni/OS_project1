@@ -21,7 +21,8 @@ typedef struct order{
     char* customer;
     int port;
     char* food_name;
-    order* next;
+    char* restaurant;
+    struct order* next;
 } order;
 
 
@@ -61,7 +62,6 @@ void show_indgredients(char* username){
         write(1, buf, BUFFER_SIZE);
         item = item->next;
     }
-
     free(buf);
 }
 
@@ -166,8 +166,6 @@ void request_ingredient(int port){
     //wait 90s lock
     
 
-    
-
 }
 
 void show_requests_list(order* head){
@@ -179,11 +177,52 @@ void show_requests_list(order* head){
         write(1, buf, BUFFER_SIZE);
         temp = temp->next;
     }
-
-
 }
 
-void answer_request(int port){
+int is_in_order_list(order *head, int port){
+    while(head != NULL && head->port != port){
+        head = head->next;
+    }
+    if (head == NULL){
+        return 0;
+    }
+    return 1;
+}
+
+int del_order(order *head, int port){
+    order* prev = head;
+    while(head != NULL && head->port != port ){
+        prev = head;
+        head = head->next;
+    }
+    if (head == NULL){
+        return 0;
+    }
+
+    prev->next = head->next;
+    free(head->customer);
+    free(head->food_name);
+    free(head->restaurant);
+    free(head);
+    return 1;
+}
+
+void write_to_hist(order *head, int port, char* status){
+    while(head != NULL && head->port != port){
+        head = head->next;
+    }
+    char *buf = read_file(HISTORY_PATH);
+    cJSON* cj = cJSON_Parse(buf);
+    cJSON* food;
+    cJSON* item = cJSON_GetObjectItemCaseSensitive(cj, head->restaurant);
+    cJSON_AddItemToObject(item, head->customer, food = cJSON_CreateObject());
+    cJSON_AddStringToObject(food, head->food_name, status);
+    char* msg = cJSON_Print(cj);
+    write_file(HISTORY_PATH, msg);
+    free(msg);
+}
+
+void answer_request(order* head){
     char buf[BUFFER_SIZE];
     char buf2[BUFFER_SIZE];
     char buf3[BUFFER_SIZE];
@@ -191,23 +230,20 @@ void answer_request(int port){
     bzero(buf2, BUFFER_SIZE);
     bzero(buf3, BUFFER_SIZE);
 
-    char* msg = "name of food : ";
+    char* msg = "port of request : ";
     write(1, msg, strlen(msg));
     read(0, buf, BUFFER_SIZE);
-    msg = "port of restaurant : ";
+    int port = atoi(buf);
+    msg = "your answer (yes/no) : ";
     write(1, msg, strlen(msg));
     read(0, buf2, BUFFER_SIZE);
-
-    int fd = connectServer(port);
-
-    sprintf(buf3, "%s %s", buf2, buf3);
-    send(fd, buf3, BUFFER_SIZE, 0);
-
-    sprintf(buf3, "waiting for supplier's response ...");
-
-    //wait 90s lock
-    //history saving
-
+    if(is_in_order_list(head, port)){
+        int fd = connectServer(port);
+        strcpy(buf3, yes_to_accept(buf2));
+        send(fd, buf3, BUFFER_SIZE, 0);
+        write_to_hist(head, port, yes_to_accept(buf2));
+        del_order(head, port);
+    }
 
 }
 
@@ -220,7 +256,7 @@ void show_history(char* username){
     while(item!=NULL){
         cJSON* food = item->child;
         bzero(buf, BUFFER_SIZE);
-        sprintf(buf, "%s %s %s\n",item->string, food->string, accept_denied(food->valueint));
+        sprintf(buf, "%s %s %s\n",item->string, food->string, food->valuestring);
         write(1, buf, BUFFER_SIZE);
         item = item->next;
     }

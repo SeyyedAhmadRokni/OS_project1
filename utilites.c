@@ -45,8 +45,21 @@ char* read_file(char* filepath){
     return buf;
 }
 
-char* accept_denied(int a){
-    if (a==1){
+int write_file(char* filepath, char* msg){
+    int fd = open(filepath, O_WRONLY | O_CREAT);
+    if(fd < 0){
+        fd = creat(filepath, O_RDONLY);
+        close(fd);
+        return 0;
+    }
+    write(fd, msg, strlen(msg));
+    close(fd);
+    return fd;
+}
+
+char* yes_to_accept(char* a){
+
+    if(strcmp(a, "yes")){
         return "accepted";
     }
     return "denied";
