@@ -17,6 +17,14 @@ struct restaurant {
     int port;
 };
 
+typedef struct order{
+    char* customer;
+    int port;
+    char* food_name;
+    order* next;
+} order;
+
+
 bool start_working(int sockfd, int port, char* username){ //return value started
     char buf[BUFFER_SIZE];
     bzero(buf, BUFFER_SIZE);
@@ -162,7 +170,16 @@ void request_ingredient(int port){
 
 }
 
-void show_requests_list(){
+void show_requests_list(order* head){
+    char buf[BUFFER_SIZE];
+    bzero(buf, BUFFER_SIZE);
+    order* temp = head;
+    while(temp != NULL){
+        sprintf(buf, "%s %d %s", temp->customer, temp->port, temp->food_name);
+        write(1, buf, BUFFER_SIZE);
+        temp = temp->next;
+    }
+
 
 }
 
@@ -210,10 +227,6 @@ void show_history(char* username){
 
     free(buf);
 }
-
-// void show_recipes(){
-
-// }
 
 
 int main(){
