@@ -18,23 +18,10 @@ struct restaurant {
     int supplier_port;
 };
 
-char* read_file(char* filepath){
-    int fd = open(filepath, O_RDONLY);
-    if(fd < 0){
-        fd = creat(filepath, O_RDONLY);
-        close(fd);
-        return NULL;
-    }
-    char* buf = calloc(BUFFER_SIZE, sizeof(char)); 
-    read(fd, buf, BUFFER_SIZE);
-    close(fd);
-    return buf;
-}
-
 bool start_working(int sockfd, int port, char* username){ //return value started
     char buf[BUFFER_SIZE];
     bzero(buf, BUFFER_SIZE);
-    sprintf(buf, "%s Restaurant opened!", username);
+    sprintf(buf, "%s Restaurant opened!\n", username);
     message msg = {buf, RESTAURANT_OPENED};
     int n = broadcast(port, &msg);
     if (n>0){
@@ -46,7 +33,7 @@ bool start_working(int sockfd, int port, char* username){ //return value started
 bool break_rest(int sockfd, int port, char* username){
     char buf[BUFFER_SIZE];
     bzero(buf, BUFFER_SIZE);
-    sprintf(buf, "%s Restaurant closed!", username);
+    sprintf(buf, "%s Restaurant closed!\n", username);
     message msg = {buf, RESTAURANT_CLOSED};
     int n = broadcast(port, &msg);
     if (n>0){
@@ -168,13 +155,6 @@ void show_requests_list(){
 
 void answer_request(){
 
-}
-
-char* accept_denied(int a){
-    if (a==1){
-        return "accepted";
-    }
-    return "denied";
 }
 
 void show_history(char* username){
