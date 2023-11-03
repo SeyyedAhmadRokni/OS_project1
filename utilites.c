@@ -65,4 +65,9 @@ char* yes_to_accept(char* a){
     return "denied";
 }
 
+int random_port_generator(){
+    return (rand()%9000)+1000;
+
+}
+
 #endif

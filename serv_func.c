@@ -48,31 +48,11 @@ int make_socket(int port){
     setsockopt(sockfd, SOL_SOCKET, SO_BROADCAST, &opt, sizeof(opt));
     setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
 
-    if (sockfd < 0){
-        return -1;
-    }
-    return sockfd;
-}
-
-int setUDPserver(int port){
-
-    char *ip = "127.0.0.1";
-
     struct sockaddr_in server_addr = make_sock_addr(port);
-    int sockfd = make_socket(port);
-
-    if (sockfd<0){
-        return sockfd;
-    }
-
     int n = bind(sockfd, (struct sockaddr *)&server_addr, sizeof(server_addr));
-    if (n<0){
-        return -2;
-    }
-
     return sockfd;
-
 }
+
 
 int broadcast(int port, message* msg){
     char buf[BUFFER_SIZE];
@@ -113,7 +93,10 @@ int setupServerTCP(int port) {
     address.sin_addr.s_addr = INADDR_ANY;
     address.sin_port = htons(port);
 
-    bind(server_fd, (struct sockaddr *)&address, sizeof(address));
+    int n = bind(server_fd, (struct sockaddr *)&address, sizeof(address));
+    if (n<0){
+        return n;
+    }
     
     listen(server_fd, 4);
 
@@ -145,4 +128,3 @@ int connectServer(int port) {
 
     return fd;
 }
-
